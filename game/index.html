@@ -13,16 +13,31 @@
         #playButton {
             font-size: 20px;
         }
+        #tokenInputContainer {
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
+    <div id="tokenInputContainer">
+        <input type="text" id="tokenInput" placeholder="Enter Token Number" />
+        <button id="submitTokenButton">Submit Token</button>
+    </div>
     <button id="playButton">Play</button>
+    <h2 id="scoreBoard" style="display:none;">Best Score: <span id="bestScore">0</span></h2>
     <canvas id="gameCanvas" width="800" height="600" tabindex="0"></canvas>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const playButton = document.getElementById('playButton');
+        const tokenInput = document.getElementById('tokenInput');
+        const submitTokenButton = document.getElementById('submitTokenButton');
+        const scoreBoard = document.getElementById('scoreBoard');
+        const bestScoreDisplay = document.getElementById('bestScore');
+
+        let bestScore = 0; // Variable to hold the best score
+        let currentScore = 0; // Variable for the current score session
 
         // User position
         const user = {
@@ -73,6 +88,7 @@
         function markVisited() {
             // Add the current position to visitedPositions array
             visitedPositions.push({ x: user.x, y: user.y });
+            currentScore++; // Increment the score for each step
         }
 
         function moveUser(event) {
@@ -97,15 +113,13 @@
 
             // Check for canvas boundaries
             if (newX < 0 || newX + user.size > canvas.width || newY < 0 || newY + user.size > canvas.height) {
-                alert('Game Over! You went outside the canvas.');
-                location.reload(); // Refresh the page
+                endGame();
                 return; // Exit the moveUser function to stop the game
             }
 
             // Check for collisions with obstacles and previously visited areas
             if (isColliding(newX, newY)) {
-                alert('Game Over! You hit a red block or backtracked.');
-                location.reload(); // Refresh the page
+                endGame();
                 return; // Exit the moveUser function to stop the game
             }
 
@@ -146,15 +160,50 @@
             return false;
         }
 
+        function endGame() {
+            alert('Game Over!');
+            if (tokenInput.value) {
+                // Update the best score if a token is provided
+                if (currentScore > bestScore) {
+                    bestScore = currentScore;
+                    bestScoreDisplay.textContent = bestScore;
+                }
+                // Also send the token and score to the server (if needed for storage)
+                fetch('/entries', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ token: tokenInput.value, content: bestScore })
+                }).catch(err => console.error('Error sending score:', err));
+            }
+            scoreBoard.style.display = 'block'; // Show the score board
+            currentScore = 0; // Reset current score
+            // Reset game state if required
+            // Additional reset logic can be added here
+        }
+
         // Start the game after clicking the play button
         playButton.addEventListener('click', () => {
             canvas.style.display = 'block'; // Show the canvas
             playButton.style.display = 'none'; // Hide the play button
+            scoreBoard.style.display = 'none'; // Hide the score board initially
+            currentScore = 0; // Initialize current score
             initializeObstacles(); // Create initial obstacles
             drawObstacles();
             drawUser();
             document.addEventListener('keydown', moveUser); // Start listening for key events
             canvas.focus(); // Focus the canvas to receive keyboard events
+        });
+
+        // Handle token submission
+        submitTokenButton.addEventListener('click', () => {
+            const tokenValue = tokenInput.value.trim();
+            if (tokenValue) {
+                alert(`Token set: ${tokenValue}`);
+            } else {
+                alert('Please enter a valid token.');
+            }
         });
     </script>
 </body>
