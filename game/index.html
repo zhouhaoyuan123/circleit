@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Game</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            background-color: white;
+            display: none; /* Initially hide the canvas */
+        }
+        #playButton {
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <button id="playButton">Play</button>
+    <canvas id="gameCanvas" width="800" height="600" tabindex="0"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const playButton = document.getElementById('playButton');
+
+        // User position
+        const user = {
+            x: 50,
+            y: 50,
+            size: 10
+        };
+
+        // To keep track of visited locations
+        const visitedPositions = [];
+
+        // Red square obstacles
+        const obstacles = [];
+        const gridSize = 20;
+        const numObstacles = 10; // Total number of obstacles to generate
+
+        function createObstacle() {
+            const x = Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize;
+            const y = Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize;
+            return { x, y, size: gridSize };
+        }
+
+        function initializeObstacles() {
+            for (let i = 0; i < numObstacles; i++) {
+                obstacles.push(createObstacle());
+            }
+        }
+
+        function drawUser() {
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(user.x, user.y, user.size, user.size);
+        }
+
+        function drawObstacles() {
+            for (let obstacle of obstacles) {
+                ctx.fillStyle = 'red';
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.size, obstacle.size);
+            }
+        }
+
+        function drawVisited() {
+            ctx.fillStyle = 'blue'; // Change to solid blue for visited areas
+            for (const pos of visitedPositions) {
+                ctx.fillRect(pos.x, pos.y, user.size, user.size); // Draw each visited position
+            }
+        }
+
+        function markVisited() {
+            // Add the current position to visitedPositions array
+            visitedPositions.push({ x: user.x, y: user.y });
+        }
+
+        function moveUser(event) {
+            const key = event.key;
+            let newX = user.x;
+            let newY = user.y;
+
+            switch (key) {
+                case 'ArrowUp':
+                    newY -= 10;
+                    break;
+                case 'ArrowDown':
+                    newY += 10;
+                    break;
+                case 'ArrowLeft':
+                    newX -= 10;
+                    break;
+                case 'ArrowRight':
+                    newX += 10;
+                    break;
+            }
+
+            // Check for canvas boundaries
+            if (newX < 0 || newX + user.size > canvas.width || newY < 0 || newY + user.size > canvas.height) {
+                alert('Game Over! You went outside the canvas.');
+                location.reload(); // Refresh the page
+                return; // Exit the moveUser function to stop the game
+            }
+
+            // Check for collisions with obstacles and previously visited areas
+            if (isColliding(newX, newY)) {
+                alert('Game Over! You hit a red block or backtracked.');
+                location.reload(); // Refresh the page
+                return; // Exit the moveUser function to stop the game
+            }
+
+            // Mark the previous position as visited
+            markVisited();
+
+            // Update user position
+            user.x = newX;
+            user.y = newY;
+
+            // Redraw everything
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawVisited();    // Draw visited positions
+            drawObstacles();
+            drawUser();
+        }
+
+        function isColliding(x, y) {
+            // Check for collision with obstacles
+            for (let obstacle of obstacles) {
+                if (x < obstacle.x + obstacle.size &&
+                    x + user.size > obstacle.x &&
+                    y < obstacle.y + obstacle.size &&
+                    y + user.size > obstacle.y) {
+                    return true; // Collision with an obstacle
+                }
+            }
+
+            // Check for previous visited area by checking the entire user area
+            const imageData = ctx.getImageData(x, y, user.size, user.size).data;
+            for (let i = 0; i < imageData.length; i += 4) {
+                // Check if the pixel is blue
+                if (imageData[i] === 0 && imageData[i + 1] === 0 && imageData[i + 2] === 255) {
+                    return true; // There is a blue pixel, indicating a backtrack
+                }
+            }
+
+            return false;
+        }
+
+        // Start the game after clicking the play button
+        playButton.addEventListener('click', () => {
+            canvas.style.display = 'block'; // Show the canvas
+            playButton.style.display = 'none'; // Hide the play button
+            initializeObstacles(); // Create initial obstacles
+            drawObstacles();
+            drawUser();
+            document.addEventListener('keydown', moveUser); // Start listening for key events
+            canvas.focus(); // Focus the canvas to receive keyboard events
+        });
+    </script>
+</body>
+</html>
