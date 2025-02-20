@@ -10,6 +10,17 @@ app.use(express.json()); // Middleware for parsing JSON bodies
 app.use(express.static(__dirname));
 app.use('/game', express.static(path.join(__dirname, 'game')));
 
+// Route to get entry by token
+app.get('/entries/:token', (req, res) => {
+    const token = req.params.token;
+    db.get('SELECT * FROM entries WHERE token = ? ORDER BY content DESC LIMIT 1', [token], (err, entry) => {
+        if (err) {
+            return res.status(500).send(err.message);
+        }
+        res.json(entry || { content: 0 });
+    });
+});
+
 app.get('/', (req, res) => {
     res.redirect('/game/index.html');
 });

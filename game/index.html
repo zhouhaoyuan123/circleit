@@ -196,10 +196,27 @@
             canvas.focus(); // Focus the canvas to receive keyboard events
         });
 
+        // Function to fetch best score for a token
+        async function fetchBestScore(token) {
+            try {
+                const response = await fetch(`/entries/${token}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.content;
+                }
+            } catch (err) {
+                console.error('Error fetching score:', err);
+            }
+            return 0;
+        }
+
         // Handle token submission
-        submitTokenButton.addEventListener('click', () => {
+        submitTokenButton.addEventListener('click', async () => {
             const tokenValue = tokenInput.value.trim();
             if (tokenValue) {
+                bestScore = await fetchBestScore(tokenValue);
+                bestScoreDisplay.textContent = bestScore;
+                scoreBoard.style.display = 'block';
                 alert(`Token set: ${tokenValue}`);
             } else {
                 alert('Please enter a valid token.');
