@@ -1,10 +1,13 @@
 // index.js
 const express = require('express');
 const path = require('path');
+const sqlite3 = require('sqlite3').verbose(); // Added sqlite3 for database operations
 const { createEntry, deleteEntry, modifyEntry } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const dbPath = path.join(__dirname, 'database.sqlite'); // Define the path
+const db = new sqlite3.Database(dbPath); // Initialize the database
 
 app.use(express.json()); // Middleware for parsing JSON bodies
 app.use(express.static(__dirname));
@@ -60,6 +63,6 @@ app.put('/entries/:id', (req, res) => {
 });
 
 // Start the server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', () => { // Ensure it's binding to 0.0.0.0
     console.log(`Server is running on http://0.0.0.0:${PORT}`);
 });
