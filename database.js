@@ -11,7 +11,8 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS entries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         token TEXT NOT NULL,
-        content INTEGER NOT NULL
+        content INTEGER NOT NULL,
+        last_access TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Track last access date
     )`);
 });
 
@@ -44,9 +45,19 @@ function modifyEntry(id, token, content, callback) {
     stmt.finalize();
 }
 
+// Function to delete old entries based on last access date
+function deleteOldEntries(date, callback) {
+    const stmt = db.prepare(`DELETE FROM entries WHERE last_access < ?`);
+    stmt.run(date, function(err) {
+        callback(err);
+    });
+    stmt.finalize();
+}
+
 // Export the functions for use in other files
 module.exports = {
     createEntry,
     deleteEntry,
-    modifyEntry
+    modifyEntry,
+    deleteOldEntries
 };

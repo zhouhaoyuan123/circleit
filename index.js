@@ -2,11 +2,12 @@
 const express = require('express');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose(); // Added sqlite3 for database operations
-const { createEntry, deleteEntry, modifyEntry } = require('./database');
+const { createEntry, deleteEntry, modifyEntry, deleteOldEntries } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const dbPath = path.join(__dirname, 'database.sqlite'); // Define the path
+
 const db = new sqlite3.Database(dbPath); // Initialize the database
 
 app.use(express.json()); // Middleware for parsing JSON bodies
@@ -20,7 +21,14 @@ app.get('/entries/:token', (req, res) => {
         if (err) {
             return res.status(500).send(err.message);
         }
-        res.json(entry || { content: 0 });
+
+        if (!entry) {
+            // Token not found, delete the cookie
+            res.clearCookie('game_token'); // Ensure you set the path and domain as necessary
+            return res.json({ message: 'Token not found. Cookie cleared.', content: 0 });
+        }
+
+        res.json(entry);
     });
 });
 
@@ -50,17 +58,18 @@ app.delete('/entries/:id', (req, res) => {
     });
 });
 
-// Route to modify an entry
-app.put('/entries/:id', (req, res) => {
-    const id = req.params.id;
-    const { token, content } = req.body;
-    modifyEntry(id, token, content, (err) => {
+// Add this new functionality
+const checkInterval = 24 * 60 * 60 * 1000; // Check every 24 hours
+const accessCutoffDate = process.env.ACCESS_CUTOFF_DATE ? new Date(process.env.ACCESS_CUTOFF_DATE) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days
+
+setInterval(() => {
+    const cutoffDate = accessCutoffDate.toISOString();
+    deleteOldEntries(cutoffDate, (err) => {
         if (err) {
-            return res.status(500).send(err.message);
+            console.error('Error deleting old entries:', err);
         }
-        res.sendStatus(200); // OK
     });
-});
+}, checkInterval);
 
 // Start the server
 app.listen(PORT, '0.0.0.0', () => { // Ensure it's binding to 0.0.0.0
