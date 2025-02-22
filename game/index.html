@@ -9,12 +9,25 @@
             border: 1px solid black;
             background-color: white;
             display: none; /* Initially hide the canvas */
+            width: 100%; /* Set canvas width to 100% */
+            height: auto; /* Set canvas height to auto */
         }
         #playButton {
             font-size: 20px;
         }
         #tokenInputContainer {
             margin-bottom: 10px;
+        }
+        .control-button {
+            font-size: 20px;
+            margin: 5px;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column; /* Stack buttons vertically */
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.0/js.cookie.min.js"></script>
@@ -30,6 +43,14 @@
     <h2 id="scoreBoard" style="display:none;">Best Score: <span id="bestScore">0</span></h2>
     <h2 id="currentScoreBoard" style="display:none;">Current Score: <span id="currentScore">0</span></h2>
     <canvas id="gameCanvas" width="800" height="600" tabindex="0"></canvas>
+
+    <!-- Control Buttons for Mobile -->
+    <div id="controls">
+        <button class="control-button" id="upButton">Up</button>
+        <button class="control-button" id="leftButton">Left</button>
+        <button class="control-button" id="downButton">Down</button>
+        <button class="control-button" id="rightButton">Right</button>
+    </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -60,6 +81,7 @@
         }
 
         function initializeObstacles() {
+            obstacles.length = 0; // Clear existing obstacles
             for (let i = 0; i < 5; i++) {
                 obstacles.push({
                     x: Math.random() * (canvas.width - 50),
@@ -119,7 +141,7 @@
 
         function startNewGame() {
             visitedAreas.clear(); // Clear visited areas for the new game
-            initializeObstacles();
+            initializeObstacles(); // Initialize new obstacles for the game
             currentScore = 0; // Reset current score
             currentScoreDisplay.textContent = currentScore; // Update current score display
             currentScoreBoard.style.display = 'block'; // Show current score display
@@ -137,13 +159,6 @@
             canvas.focus();
         }
 
-        playButton.addEventListener('click', () => {
-            canvas.style.display = 'block';
-            playButton.style.display = 'none';
-            scoreBoard.style.display = 'none';
-            startNewGame(); // Start the first game
-        });
-
         async function fetchBestScore(token) {
             try {
                 const response = await fetch(`/entries/${token}`);
@@ -155,6 +170,19 @@
                 console.error('Error fetching score:', err);
             }
             return 0;
+        }
+
+        function initializeGame() {
+            const token = Cookies.get('game_token');
+            if (token) {
+                tokenInput.value = token;
+                fetchBestScore(token).then(score => {
+                    bestScore = score;
+                    bestScoreDisplay.textContent = bestScore;
+                    scoreBoard.style.display = 'block'; // Show score once fetched
+                }).catch(err => console.error('Error initializing game:', err));
+                alert(`Welcome back! Your token is: ${token}`);
+            }
         }
 
         submitTokenButton.addEventListener('click', async () => {
@@ -185,13 +213,12 @@
             alert('Token cleared!');
         });
 
-        window.onload = () => {
-            const token = Cookies.get('game_token');
-            if (token) {
-                tokenInput.value = token;
-                alert(`Welcome back! Your token is: ${token}`);
-            }
-        };
+        playButton.addEventListener('click', () => {
+            canvas.style.display = 'block';
+            playButton.style.display = 'none';
+            scoreBoard.style.display = 'none';
+            startNewGame(); // Start the first game
+        });
 
         function moveUser(event) {
             const step = 5;
@@ -220,12 +247,52 @@
             if (checkCollision(user)) {
                 endGame();
             } else {
-                currentScore++; // Increment score when user moves to a new area
-                currentScoreDisplay.textContent = currentScore; // Update the current score display
-                visitedAreas.add(`${Math.floor(user.x)}:${Math.floor(user.y)}`);
+                if (!visitedAreas.has(`${Math.floor(user.x)}:${Math.floor(user.y)}`)) {
+                    currentScore++; // Increment score when the user moves to a new area
+                    currentScoreDisplay.textContent = currentScore; // Update current score display
+                    visitedAreas.add(`${Math.floor(user.x)}:${Math.floor(user.y)}`);
+                }
             }
             draw(); // Continuously redraw the canvas
         }
+
+        // Adding mobile button controls
+        function moveWithButton(direction) {
+            const step = 5;
+            let previousX = user.x;
+            let previousY = user.y;
+
+            switch (direction) {
+                case 'up':
+                    user.y = Math.max(user.y - step, 0);
+                    break;
+                case 'down':
+                    user.y = Math.min(user.y + step, canvas.height - user.size);
+                    break;
+                case 'left':
+                    user.x = Math.max(user.x - step, 0);
+                    break;
+                case 'right':
+                    user.x = Math.min(user.x + step, canvas.width - user.size);
+                    break;
+            }
+
+            if (checkCollision(user)) {
+                endGame();
+            } else {
+                if (!visitedAreas.has(`${Math.floor(user.x)}:${Math.floor(user.y)}`)) {
+                    currentScore++; // Increment score when the user moves to a new area
+                    currentScoreDisplay.textContent = currentScore; // Update current score display
+                    visitedAreas.add(`${Math.floor(user.x)}:${Math.floor(user.y)}`);
+                }
+            }
+            draw(); // Continuously redraw the canvas
+        }
+
+        document.getElementById('upButton').addEventListener('click', () => moveWithButton('up'));
+        document.getElementById('downButton').addEventListener('click', () => moveWithButton('down'));
+        document.getElementById('leftButton').addEventListener('click', () => moveWithButton('left'));
+        document.getElementById('rightButton').addEventListener('click', () => moveWithButton('right'));
 
         function checkCollision(user) {
             for (const obstacle of obstacles) {
@@ -260,6 +327,20 @@
             ctx.arc(user.x, user.y, user.size, 0, Math.PI * 2);
             ctx.fill();
         }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth * 0.9; // Set canvas width to 90% of window width
+            canvas.height = window.innerHeight * 0.6; // Set canvas height to 60% of window height
+            clearCanvas();
+            drawObstacles();
+            drawUser();
+        }
+
+        window.addEventListener('resize', resizeCanvas); // Resize canvas when window size changes
+        window.onload = () => {
+            resizeCanvas(); // Also resize the canvas on load
+            initializeGame(); // Initialize game on page load
+        };
     </script>
 </body>
 </html>
