@@ -114,6 +114,8 @@
             size: 10
         };
 
+        let hasWon = false; // Track if the user has already won
+
         function generateToken() {
             return Math.random().toString(36).substring(2, 10);
         }
@@ -288,6 +290,13 @@
                 if (!visitedAreas.has(`${Math.floor(user.x)}:${Math.floor(user.y)}`)) {
                     currentScore++; // Increment score when the user moves to a new area
                     currentScoreDisplay.textContent = currentScore; // Update current score display
+                    
+                    // Check for the winning condition
+                    if (currentScore >= (canvas.height * 0.6 * 0.5) && !hasWon) { // 50% of canvas height
+                        alert("You have won, but keep playing!");
+                        hasWon = true; // Set the flag to true after showing the alert
+                    }
+                    
                     visitedAreas.add(`${Math.floor(user.x)}:${Math.floor(user.y)}`);
                 }
             }
@@ -321,6 +330,13 @@
                 if (!visitedAreas.has(`${Math.floor(user.x)}:${Math.floor(user.y)}`)) {
                     currentScore++; // Increment score when the user moves to a new area
                     currentScoreDisplay.textContent = currentScore; // Update current score display
+                    
+                    // Check for the winning condition
+                    if (currentScore >= (canvas.height * 0.6 * 0.5) && !hasWon) { // 50% of canvas height
+                        alert("You have won, but keep playing!");
+                        hasWon = true; // Set the flag to true after showing the alert
+                    }
+
                     visitedAreas.add(`${Math.floor(user.x)}:${Math.floor(user.y)}`);
                 }
             }
