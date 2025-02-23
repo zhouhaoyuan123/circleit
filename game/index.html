@@ -45,15 +45,22 @@
             handleTokenResponse(data);
         }
 
-        document.getElementById('submitTokenButton').addEventListener('click', async () => {
-            const tokenValue = document.getElementById('tokenInput').value.trim();
-            if (tokenValue) {
-                await fetchEntryByToken(tokenValue);
-            } else {
-                alert('Please enter a valid token.');
-            }
-        });
-        
+        // Wrap event listener setup in window.onload to ensure DOM is fully loaded
+        window.onload = () => {
+            document.getElementById('submitTokenButton').addEventListener('click', async () => {
+                const tokenValue = document.getElementById('tokenInput').value.trim();
+                if (tokenValue) {
+                    await fetchEntryByToken(tokenValue);
+                } else {
+                    alert('Please enter a valid token.');
+                }
+            });
+
+            // Resize and initialize game on load
+            resizeCanvas(); // Also resize the canvas on load
+            initializeGame(); // Initialize game on page load
+        };
+
         function resizeCanvas() {
             const canvas = document.getElementById('gameCanvas');
             canvas.width = window.innerWidth * 0.9; // Set canvas width to 90% of window width
@@ -64,10 +71,6 @@
         }
 
         window.addEventListener('resize', resizeCanvas); // Resize canvas when window size changes
-        window.onload = () => {
-            resizeCanvas(); // Also resize the canvas on load
-            initializeGame(); // Initialize game on page load
-        };
     </script>
 </head>
 <body>
@@ -77,6 +80,8 @@
         <button id="createTokenButton">Create Token</button>
         <button id="clearTokenButton">Clear Token</button>
     </div>
+    <input type="number" id="goalInput" placeholder="Set your goal" />
+    <button id="setGoalButton">Set Goal</button>
     <button id="playButton">Play</button>
     <h2 id="scoreBoard" style="display:none;">Best Score: <span id="bestScore">0</span></h2>
     <h2 id="currentScoreBoard" style="display:none;">Current Score: <span id="currentScore">0</span></h2>
@@ -102,9 +107,12 @@
         const bestScoreDisplay = document.getElementById('bestScore');
         const currentScoreDisplay = document.getElementById('currentScore'); // Current score display
         const currentScoreBoard = document.getElementById('currentScoreBoard'); // Current score element
+        const goalInput = document.getElementById('goalInput'); // Input for user goal
+        const setGoalButton = document.getElementById('setGoalButton'); // Set goal button
 
         let bestScore = 0;
         let currentScore = 0;
+        let userGoal = null; // Initialize user goal
         const obstacles = [];
         const visitedAreas = new Set();
 
@@ -115,6 +123,7 @@
         };
 
         let hasWon = false; // Track if the user has already won
+        let goalReached = false; // Track if the user's goal has been reached
 
         function generateToken() {
             return Math.random().toString(36).substring(2, 10);
@@ -253,6 +262,17 @@
             alert('Token cleared!');
         });
 
+        setGoalButton.addEventListener('click', () => {
+            const goalValue = parseInt(goalInput.value);
+            if (!isNaN(goalValue) && goalValue > 0) {
+                userGoal = goalValue; // Set the user's goal
+                goalReached = false; // Reset goal reached flag
+                alert(`Goal set to: ${userGoal}`);
+            } else {
+                alert('Please enter a valid positive number for the goal.');
+            }
+        });
+
         playButton.addEventListener('click', () => {
             canvas.style.display = 'block';
             playButton.style.display = 'none';
@@ -290,13 +310,13 @@
                 if (!visitedAreas.has(`${Math.floor(user.x)}:${Math.floor(user.y)}`)) {
                     currentScore++; // Increment score when the user moves to a new area
                     currentScoreDisplay.textContent = currentScore; // Update current score display
-                    
-                    // Check for the winning condition
-                    if (currentScore >= (canvas.height * 0.6 * 0.5) && !hasWon) { // 50% of canvas height
-                        alert("You have won, but keep playing!");
-                        hasWon = true; // Set the flag to true after showing the alert
+
+                    // Check if the user's goal has been reached
+                    if (userGoal !== null && currentScore >= userGoal && !goalReached) {
+                        alert("Goal Reached");
+                        goalReached = true; // Set the flag to true after showing the alert
                     }
-                    
+
                     visitedAreas.add(`${Math.floor(user.x)}:${Math.floor(user.y)}`);
                 }
             }
@@ -330,11 +350,11 @@
                 if (!visitedAreas.has(`${Math.floor(user.x)}:${Math.floor(user.y)}`)) {
                     currentScore++; // Increment score when the user moves to a new area
                     currentScoreDisplay.textContent = currentScore; // Update current score display
-                    
-                    // Check for the winning condition
-                    if (currentScore >= (canvas.height * 0.6 * 0.5) && !hasWon) { // 50% of canvas height
-                        alert("You have won, but keep playing!");
-                        hasWon = true; // Set the flag to true after showing the alert
+
+                    // Check if the user's goal has been reached
+                    if (userGoal !== null && currentScore >= userGoal && !goalReached) {
+                        alert("Goal Reached");
+                        goalReached = true; // Set the flag to true after showing the alert
                     }
 
                     visitedAreas.add(`${Math.floor(user.x)}:${Math.floor(user.y)}`);
@@ -381,20 +401,6 @@
             ctx.arc(user.x, user.y, user.size, 0, Math.PI * 2);
             ctx.fill();
         }
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth * 0.9; // Set canvas width to 90% of window width
-            canvas.height = window.innerHeight * 0.6; // Set canvas height to 60% of window height
-            clearCanvas();
-            drawObstacles();
-            drawUser();
-        }
-
-        window.addEventListener('resize', resizeCanvas); // Resize canvas when window size changes
-        window.onload = () => {
-            resizeCanvas(); // Also resize the canvas on load
-            initializeGame(); // Initialize game on page load
-        };
     </script>
 </body>
 </html>
