@@ -83,6 +83,7 @@
     </div>
     <input type="number" id="goalInput" placeholder="Set your goal" />
     <button id="setGoalButton">Set Goal</button>
+    <input type="number" id="obstacleInput" placeholder="Number of red blocks" value="5" min="1" max="20"/>
     <button id="playButton">Play</button>
     <h2 id="scoreBoard" style="display:none;">Best Score: <span id="bestScore">0</span></h2>
     <h2 id="currentScoreBoard" style="display:none;">Current Score: <span id="currentScore">0</span></h2>
@@ -132,7 +133,8 @@
 
         function initializeObstacles() {
             obstacles.length = 0; // Clear existing obstacles
-            for (let i = 0; i < 5; i++) {
+            const obstacleCount = Math.min(Math.max(parseInt(document.getElementById('obstacleInput').value) || 5, 1), 20);
+            for (let i = 0; i < obstacleCount; i++) {
                 obstacles.push({
                     x: Math.random() * (canvas.width - 50),
                     y: Math.random() * (canvas.height - 50),
