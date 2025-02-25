@@ -61,14 +61,14 @@ app.delete('/entries/:id', (req, res) => {
 const checkInterval = 24 * 60 * 60 * 1000; // Check every 24 hours
 const accessCutoffDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days
 
-setInterval(() => {
-    const cutoffDate = accessCutoffDate.toISOString();
-    deleteOldEntries(cutoffDate, (err) => {
-        if (err) {
-            console.error('Error deleting old entries:', err);
-        }
-    });
-}, checkInterval);
+// setInterval(() => {
+//     const cutoffDate = accessCutoffDate.toISOString();
+//     deleteOldEntries(cutoffDate, (err) => {
+//         if (err) {
+//             console.error('Error deleting old entries:', err);
+//         }
+//     });
+// }, checkInterval);
 
 // Start the server
 app.listen(PORT, '0.0.0.0', () => { // Ensure it's binding to 0.0.0.0
