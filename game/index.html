@@ -235,18 +235,23 @@
             }
         }
 
-        submitTokenButton.addEventListener('click', async (event) => {
-            event.preventDefault(); // Prevent page refresh
+        submitTokenButton.addEventListener('click', async () => {
             const tokenValue = tokenInput.value.trim();
             if (tokenValue) {
-                Cookies.set('game_token', tokenValue, { expires: 7 });
-                bestScore = await fetchBestScore(tokenValue);
-                bestScoreDisplay.textContent = bestScore;
-                scoreBoard.style.display = 'block';
-                alert(`Token set: ${tokenValue}`);
+                try {
+                    bestScore = await fetchBestScore(tokenValue);
+                    Cookies.set('game_token', tokenValue, { expires: 7 });
+                    bestScoreDisplay.textContent = bestScore;
+                    scoreBoard.style.display = 'block';
+                    alert(`Token set: ${tokenValue}`);
+                } catch (error) {
+                    console.error('Error setting token:', error);
+                    alert('Error setting token. Please try again.');
+                }
             } else {
                 alert('Please enter a valid token.');
             }
+            return false; // Prevent default behavior
         });
 
         createTokenButton.addEventListener('click', () => {
