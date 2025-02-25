@@ -267,13 +267,31 @@
             return false; // Prevent default behavior
         });
 
-        createTokenButton.addEventListener('click', () => {
+        createTokenButton.addEventListener('click', async () => {
             const newToken = generateToken();
             tokenInput.value = newToken;
-            Cookies.set('game_token', newToken, { expires: 7 });
-            alert(`New token created: ${newToken}`);
-            bestScore = 0; // Reset best score for new token
-            bestScoreDisplay.textContent = bestScore; // Update display to show zero
+            
+            try {
+                // Create entry in database first
+                const response = await fetch('/entries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: newToken, content: 0 })
+                });
+                
+                if (response.ok) {
+                    Cookies.set('game_token', newToken, { expires: 7 });
+                    bestScore = 0;
+                    bestScoreDisplay.textContent = bestScore;
+                    scoreBoard.style.display = 'block';
+                    alert(`New token created: ${newToken}`);
+                } else {
+                    alert('Error creating token. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error creating token. Please try again.');
+            }
         });
 
         clearTokenButton.addEventListener('click', () => {
