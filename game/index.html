@@ -47,7 +47,8 @@
 
         // Wrap event listener setup in window.onload to ensure DOM is fully loaded
         window.onload = () => {
-            document.getElementById('submitTokenButton').addEventListener('click', async () => {
+            document.getElementById('submitTokenButton').addEventListener('click', async (event) => {
+                event.preventDefault(); // Prevent page refresh
                 const tokenValue = document.getElementById('tokenInput').value.trim();
                 if (tokenValue) {
                     await fetchEntryByToken(tokenValue);
@@ -234,7 +235,8 @@
             }
         }
 
-        submitTokenButton.addEventListener('click', async () => {
+        submitTokenButton.addEventListener('click', async (event) => {
+            event.preventDefault(); // Prevent page refresh
             const tokenValue = tokenInput.value.trim();
             if (tokenValue) {
                 Cookies.set('game_token', tokenValue, { expires: 7 });
@@ -257,9 +259,9 @@
         });
 
         clearTokenButton.addEventListener('click', () => {
-            Cookies.remove('game_token');
-            tokenInput.value = '';
-            alert('Token cleared!');
+            Cookies.remove('game_token'); // Only remove the cookie
+            tokenInput.value = ''; // Clear the input field
+            alert('Token cleared! Only cookie deleted, database entry will be deleted after 30 days of inactivity.');
         });
 
         setGoalButton.addEventListener('click', () => {

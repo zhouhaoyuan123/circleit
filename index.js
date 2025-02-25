@@ -17,11 +17,10 @@ app.use('/game', express.static(path.join(__dirname, 'game')));
 // Route to get entry by token
 app.get('/entries/:token', (req, res) => {
     const token = req.params.token;
-    db.get('SELECT * FROM entries WHERE token = ? ORDER BY content DESC LIMIT 1', [token], (err, entry) => {
+    db.get('SELECT * FROM entries WHERE token = ?', [token], (err, entry) => {
         if (err) {
             return res.status(500).send(err.message);
         }
-
         if (!entry) {
             // Token not found, delete the cookie
             res.clearCookie('game_token'); // Ensure you set the path and domain as necessary
@@ -60,7 +59,7 @@ app.delete('/entries/:id', (req, res) => {
 
 // Add this new functionality
 const checkInterval = 24 * 60 * 60 * 1000; // Check every 24 hours
-const accessCutoffDate = process.env.ACCESS_CUTOFF_DATE ? new Date(process.env.ACCESS_CUTOFF_DATE) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days
+const accessCutoffDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days
 
 setInterval(() => {
     const cutoffDate = accessCutoffDate.toISOString();
