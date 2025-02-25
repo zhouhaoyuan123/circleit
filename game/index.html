@@ -51,7 +51,18 @@
                 event.preventDefault(); // Prevent page refresh
                 const tokenValue = document.getElementById('tokenInput').value.trim();
                 if (tokenValue) {
-                    await fetchEntryByToken(tokenValue);
+                    const response = await fetch(`/entries/${tokenValue}`);
+                    const data = await response.json();
+                    
+                    if (data.content !== 0) {
+                        bestScore = data.content;
+                        Cookies.set('game_token', tokenValue, { expires: 7 });
+                        bestScoreDisplay.textContent = bestScore;
+                        scoreBoard.style.display = 'block';
+                        alert(`Token set: ${tokenValue}`);
+                    } else {
+                        alert('Token not found. Please create a new token.');
+                    }
                 } else {
                     alert('Please enter a valid token.');
                 }

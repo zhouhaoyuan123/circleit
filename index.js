@@ -22,11 +22,10 @@ app.get('/entries/:token', (req, res) => {
             return res.status(500).send(err.message);
         }
         if (!entry) {
-            // Token not found, delete the cookie
-            res.clearCookie('game_token'); // Ensure you set the path and domain as necessary
-            return res.json({ message: 'Token not found. Cookie cleared.', content: 0 });
+            return res.json({ message: 'Token not found', content: 0 });
         }
-
+        // Update last access time
+        db.run('UPDATE entries SET last_access = CURRENT_TIMESTAMP WHERE token = ?', [token]);
         res.json(entry);
     });
 });
