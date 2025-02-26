@@ -33,13 +33,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.0/js.cookie.min.js"></script>
     <script>
         function handleTokenResponse(response) {
-            if (response.content === 0) {
-                // Token not found, show alert and handle accordingly
+            if (response.message === 'Token not found') {
                 alert('Token not found. Please create a new token.');
-                return; // Exit the function early
+                return;
             }
 
-            // Continue processing if the token was found
             bestScore = response.content;
             Cookies.set('game_token', tokenInput.value.trim(), { expires: 7 });
             bestScoreDisplay.textContent = bestScore;
@@ -222,14 +220,15 @@
         async function fetchBestScore(token) {
             try {
                 const response = await fetch(`/entries/${token}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.content;
+                const data = await response.json();
+                if (data.message === 'Token not found') {
+                    return 0;
                 }
+                return data.content;
             } catch (err) {
                 console.error('Error fetching score:', err);
+                return 0;
             }
-            return 0;
         }
 
         function initializeGame() {
