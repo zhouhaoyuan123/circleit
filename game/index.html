@@ -34,9 +34,17 @@
     <script>
         function handleTokenResponse(response) {
             if (response.content === 0) {
-                // Cookie has been cleared, refresh the page
-                location.reload();
+                // Token not found, show alert and handle accordingly
+                alert('Token not found. Please create a new token.');
+                return; // Exit the function early
             }
+
+            // Continue processing if the token was found
+            bestScore = response.content;
+            Cookies.set('game_token', tokenInput.value.trim(), { expires: 7 });
+            bestScoreDisplay.textContent = bestScore;
+            scoreBoard.style.display = 'block';
+            alert(`Token set: ${tokenInput.value.trim()}`);
         }
 
         async function fetchEntryByToken(token) {
@@ -51,18 +59,7 @@
                 event.preventDefault(); // Prevent page refresh
                 const tokenValue = document.getElementById('tokenInput').value.trim();
                 if (tokenValue) {
-                    const response = await fetch(`/entries/${tokenValue}`);
-                    const data = await response.json();
-                    
-                    if (data.content !== 0) {
-                        bestScore = data.content;
-                        Cookies.set('game_token', tokenValue, { expires: 7 });
-                        bestScoreDisplay.textContent = bestScore;
-                        scoreBoard.style.display = 'block';
-                        alert(`Token set: ${tokenValue}`);
-                    } else {
-                        alert('Token not found. Please create a new token.');
-                    }
+                    fetchEntryByToken(tokenValue); // Fetch the entry by token
                 } else {
                     alert('Please enter a valid token.');
                 }
@@ -270,7 +267,7 @@
         createTokenButton.addEventListener('click', async () => {
             const newToken = generateToken();
             tokenInput.value = newToken;
-            
+
             try {
                 // Create entry in database first
                 const response = await fetch('/entries', {
@@ -278,7 +275,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: newToken, content: 0 })
                 });
-                
+
                 if (response.ok) {
                     Cookies.set('game_token', newToken, { expires: 7 });
                     bestScore = 0;
