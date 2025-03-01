@@ -72,18 +72,21 @@ app.delete('/entries/:id', (req, res) => {
     });
 });
 
-// Add this new functionality
-const checkInterval = 24 * 60 * 60 * 1000; // Check every 24 hours
-const accessCutoffDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days
-
-setInterval(() => {
-    const cutoffDate = accessCutoffDate.toISOString();
+// Function to delete old entries; runs on startup and then every hour
+const cleanUpOldEntries = () => {
+    const cutoffDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     deleteOldEntries(cutoffDate, (err) => {
         if (err) {
             console.error('Error deleting old entries:', err);
         }
     });
-}, checkInterval);
+};
+
+// Run the cleanup on startup
+cleanUpOldEntries(); 
+
+// Set up to run the cleanup every hour
+setInterval(cleanUpOldEntries, 60 * 60 * 1000); // Every hour
 
 // Start the server
 app.listen(PORT, '0.0.0.0', () => { // Ensure it's binding to 0.0.0.0
