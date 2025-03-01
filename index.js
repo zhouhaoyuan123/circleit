@@ -15,6 +15,14 @@ app.use(express.static(__dirname));
 app.use('/game', express.static(path.join(__dirname, 'game')));
 
 // Route to get entry by token
+function updateEntry(token, content, callback) {
+    const stmt = db.prepare(`UPDATE entries SET content = ? WHERE token = ?`);
+    stmt.run(content, token, function(err) {
+        callback(err);
+    });
+    stmt.finalize();
+}
+
 app.get('/entries/:token', (req, res) => {
     const token = req.params.token;
     db.get('SELECT * FROM entries WHERE token = ?', [token], (err, entry) => {
@@ -37,11 +45,27 @@ app.get('/', (req, res) => {
 // Route to create an entry
 app.post('/entries', (req, res) => {
     const { token, content } = req.body;
-    createEntry(token, content, (err, entry) => {
+    db.get('SELECT * FROM entries WHERE token = ?', [token], (err, entry) => {
         if (err) {
             return res.status(500).send(err.message);
         }
-        res.status(201).json(entry);
+        if (entry) {
+            // Token exists, update the content
+            updateEntry(token, content, (err) => {
+                if (err) {
+                    return res.status(500).send(err.message);
+                }
+                res.status(200).json({ message: 'Score updated successfully' });
+            });
+        } else {
+            // Token does not exist, create a new entry
+            createEntry(token, content, (err, createdEntry) => {
+                if (err) {
+                    return res.status(500).send(err.message);
+                }
+                res.status(201).json(createdEntry);
+            });
+        }
     });
 });
 

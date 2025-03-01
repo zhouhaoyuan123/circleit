@@ -38,11 +38,13 @@
                 return;
             }
 
-            bestScore = response.content;
-            Cookies.set('game_token', tokenInput.value.trim(), { expires: 7 });
-            bestScoreDisplay.textContent = bestScore;
-            scoreBoard.style.display = 'block';
-            alert(`Token set: ${tokenInput.value.trim()}`);
+            // Update best score only if it's a valid response
+            if (response.content != null) {
+                bestScore = response.content; // Update best score
+                bestScoreDisplay.textContent = bestScore; // Display best score
+                scoreBoard.style.display = 'block';
+                alert(`Token set: ${tokenInput.value.trim()}`); // Show token alert once
+            }
         }
 
         async function fetchEntryByToken(token) {
@@ -57,7 +59,8 @@
                 event.preventDefault(); // Prevent page refresh
                 const tokenValue = document.getElementById('tokenInput').value.trim();
                 if (tokenValue) {
-                    fetchEntryByToken(tokenValue); // Fetch the entry by token
+                    await fetchEntryByToken(tokenValue); // Fetch the entry by token
+                    Cookies.set('game_token', tokenValue, { expires: 7 }); // Set the cookie after fetching
                 } else {
                     alert('Please enter a valid token.');
                 }
@@ -176,6 +179,13 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ token: tokenInput.value, content: bestScore })
+                    }).then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to update score');
+                        }
+                        return response.json();
+                    }).then(data => {
+                        console.log('Score updated:', data);
                     }).catch(err => console.error('Error sending score:', err));
                 }
             }
@@ -192,7 +202,6 @@
                 startNewGame();
             }, 2000); // Delay before restart
         }
-
         function clearCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
@@ -250,9 +259,7 @@
                 try {
                     bestScore = await fetchBestScore(tokenValue);
                     Cookies.set('game_token', tokenValue, { expires: 7 });
-                    bestScoreDisplay.textContent = bestScore;
-                    scoreBoard.style.display = 'block';
-                    alert(`Token set: ${tokenValue}`);
+                    // Best score logic is now handled in handleTokenResponse
                 } catch (error) {
                     console.error('Error setting token:', error);
                     alert('Error setting token. Please try again.');
