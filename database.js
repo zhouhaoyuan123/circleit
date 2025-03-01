@@ -15,6 +15,14 @@ db.serialize(() => {
         last_access TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Track last access date
     )`);
 });
+//Update
+function updateEntry(token, content, callback) {
+    const stmt = db.prepare(`UPDATE entries SET content = ? WHERE token = ?`);
+    stmt.run(content, token, function(err) {
+        callback(err);
+    });
+    stmt.finalize();
+}
 
 // Function to create an entry
 function createEntry(token, content, callback) {
@@ -59,5 +67,6 @@ module.exports = {
     createEntry,
     deleteEntry,
     modifyEntry,
-    deleteOldEntries
+    deleteOldEntries,
+    updateEntry,
 };
