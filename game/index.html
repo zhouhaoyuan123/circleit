@@ -38,7 +38,6 @@
                 return;
             }
 
-            // Update best score only if it's a valid response
             if (response.content != null) {
                 bestScore = response.content; // Update best score
                 bestScoreDisplay.textContent = bestScore; // Display best score
@@ -53,7 +52,6 @@
             handleTokenResponse(data);
         }
 
-        // Wrap event listener setup in window.onload to ensure DOM is fully loaded
         window.onload = () => {
             document.getElementById('submitTokenButton').addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent page refresh
@@ -66,8 +64,7 @@
                 }
             });
 
-            // Resize and initialize game on load
-            resizeCanvas(); // Also resize the canvas on load
+            resizeCanvas(); // Resize the canvas on load
             initializeGame(); // Initialize game on page load
         };
 
@@ -80,40 +77,10 @@
             drawUser();
         }
 
-        window.addEventListener('resize', resizeCanvas); // Resize canvas when window size changes
-    </script>
-</head>
-<body>
-    <div id="tokenInputContainer">
-        <input type="text" id="tokenInput" placeholder="Enter Token Number" />
-        <button id="submitTokenButton">Submit Token</button>
-        <button id="createTokenButton">Create Token</button>
-        <button id="clearTokenButton">Clear Token</button>
-    </div>
-    <input type="number" id="goalInput" placeholder="Set your goal" />
-    <button id="setGoalButton">Set Goal</button>
-    <input type="number" id="obstacleInput" placeholder="Number of red blocks" value="5" min="1" max="20"/>
-    <button id="playButton">Play</button>
-    <h2 id="scoreBoard" style="display:none;">Best Score: <span id="bestScore">0</span></h2>
-    <h2 id="currentScoreBoard" style="display:none;">Current Score: <span id="currentScore">0</span></h2>
-    <canvas id="gameCanvas" width="800" height="600" tabindex="0"></canvas>
-
-    <!-- Control Buttons for Mobile -->
-    <div id="controls">
-        <button class="control-button" id="upButton">Up</button>
-        <button class="control-button" id="leftButton">Left</button>
-        <button class="control-button" id="downButton">Down</button>
-        <button class="control-button" id="rightButton">Right</button>
-    </div>
-
-    <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const playButton = document.getElementById('playButton');
         const tokenInput = document.getElementById('tokenInput');
-        const submitTokenButton = document.getElementById('submitTokenButton');
-        const createTokenButton = document.getElementById('createTokenButton');
-        const clearTokenButton = document.getElementById('clearTokenButton');
         const scoreBoard = document.getElementById('scoreBoard');
         const bestScoreDisplay = document.getElementById('bestScore');
         const currentScoreDisplay = document.getElementById('currentScore'); // Current score display
@@ -152,6 +119,51 @@
                 });
             }
         }
+
+        function drawObstacle(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            obstacles.push({
+                x: x - 25, // Center the obstacle
+                y: y - 25,
+                width: 50,
+                height: 50,
+            });
+            draw(); // Redraw including new obstacles
+        }
+
+        // Enable mouse events on canvas
+        canvas.addEventListener('click', drawObstacle); 
+
+        // Function to export obstacles
+        function exportObstacles() {
+            const exportData = JSON.stringify(obstacles);
+            const blob = new Blob([exportData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'obstacles.json';
+            a.click();
+            URL.revokeObjectURL(url); // Cleanup
+        }
+
+        // Function to handle importing obstacles
+        function importObstacles(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = e.target.result;
+                obstacles.length = 0; // Clear existing obstacles
+                obstacles.push(...JSON.parse(data)); // Load imported obstacles
+                draw(); // Redraw with imported obstacles
+            };
+            reader.readAsText(file); // Read the file as text
+        }
+
+        document.getElementById('exportButton').addEventListener('click', exportObstacles);
+        document.getElementById('importButton').addEventListener('change', importObstacles);
 
         function isOnObstacle(x, y) {
             return obstacles.some(obstacle => 
@@ -202,6 +214,7 @@
                 startNewGame();
             }, 2000); // Delay before restart
         }
+
         function clearCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
@@ -259,7 +272,6 @@
                 try {
                     bestScore = await fetchBestScore(tokenValue);
                     Cookies.set('game_token', tokenValue, { expires: 7 });
-                    // Best score logic is now handled in handleTokenResponse
                 } catch (error) {
                     console.error('Error setting token:', error);
                     alert('Error setting token. Please try again.');
@@ -275,7 +287,6 @@
             tokenInput.value = newToken;
 
             try {
-                // Create entry in database first
                 const response = await fetch('/entries', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -323,9 +334,6 @@
 
         function moveUser(event) {
             const step = 5;
-            let previousX = user.x;
-            let previousY = user.y;
-
             switch (event.key) {
                 case 'ArrowUp':
                 case 'w':
@@ -348,66 +356,24 @@
             if (checkCollision(user)) {
                 endGame();
             } else {
-                if (!visitedAreas.has(`${Math.floor(user.x)}:${Math.floor(user.y)}`)) {
-                    currentScore++; // Increment score when the user moves to a new area
-                    currentScoreDisplay.textContent = currentScore; // Update current score display
+                currentScore++; // Increment score when the user moves to a new area
+                currentScoreDisplay.textContent = currentScore; // Update current score display
 
-                    // Check if the user's goal has been reached
-                    if (userGoal !== null && currentScore >= userGoal && !goalReached) {
-                        alert("Goal Reached");
-                        goalReached = true; // Set the flag to true after showing the alert
-                    }
-
-                    visitedAreas.add(`${Math.floor(user.x)}:${Math.floor(user.y)}`);
+                // Check if the user's goal has been reached
+                if (userGoal !== null && currentScore >= userGoal && !goalReached) {
+                    alert("Goal Reached");
+                    goalReached = true; // Set the flag to true after showing the alert
                 }
+
+                visitedAreas.add(`${Math.floor(user.x)}:${Math.floor(user.y)}`);
             }
             draw(); // Continuously redraw the canvas
         }
 
-        // Adding mobile button controls
-        function moveWithButton(direction) {
-            const step = 5;
-            let previousX = user.x;
-            let previousY = user.y;
-
-            switch (direction) {
-                case 'up':
-                    user.y = Math.max(user.y - step, 0);
-                    break;
-                case 'down':
-                    user.y = Math.min(user.y + step, canvas.height - user.size);
-                    break;
-                case 'left':
-                    user.x = Math.max(user.x - step, 0);
-                    break;
-                case 'right':
-                    user.x = Math.min(user.x + step, canvas.width - user.size);
-                    break;
-            }
-
-            if (checkCollision(user)) {
-                endGame();
-            } else {
-                if (!visitedAreas.has(`${Math.floor(user.x)}:${Math.floor(user.y)}`)) {
-                    currentScore++; // Increment score when the user moves to a new area
-                    currentScoreDisplay.textContent = currentScore; // Update current score display
-
-                    // Check if the user's goal has been reached
-                    if (userGoal !== null && currentScore >= userGoal && !goalReached) {
-                        alert("Goal Reached");
-                        goalReached = true; // Set the flag to true after showing the alert
-                    }
-
-                    visitedAreas.add(`${Math.floor(user.x)}:${Math.floor(user.y)}`);
-                }
-            }
-            draw(); // Continuously redraw the canvas
-        }
-
-        document.getElementById('upButton').addEventListener('click', () => moveWithButton('up'));
-        document.getElementById('downButton').addEventListener('click', () => moveWithButton('down'));
-        document.getElementById('leftButton').addEventListener('click', () => moveWithButton('left'));
-        document.getElementById('rightButton').addEventListener('click', () => moveWithButton('right'));
+        document.getElementById('upButton').addEventListener('click', () => moveUser({key: 'ArrowUp'}));
+        document.getElementById('downButton').addEventListener('click', () => moveUser({key: 'ArrowDown'}));
+        document.getElementById('leftButton').addEventListener('click', () => moveUser({key: 'ArrowLeft'}));
+        document.getElementById('rightButton').addEventListener('click', () => moveUser({key: 'ArrowRight'}));
 
         function checkCollision(user) {
             for (const obstacle of obstacles) {
@@ -443,5 +409,30 @@
             ctx.fill();
         }
     </script>
+</head>
+<body>
+    <div id="tokenInputContainer">
+        <input type="text" id="tokenInput" placeholder="Enter Token Number" />
+        <button id="submitTokenButton">Submit Token</button>
+        <button id="createTokenButton">Create Token</button>
+        <button id="clearTokenButton">Clear Token</button>
+    </div>
+    <input type="number" id="goalInput" placeholder="Set your goal" />
+    <button id="setGoalButton">Set Goal</button>
+    <input type="number" id="obstacleInput" placeholder="Number of red blocks" value="5" min="1" max="20" />
+    <button id="playButton">Play</button>
+    <button id="exportButton">Export Obstacles</button>
+    <input type="file" id="importButton" style="display: none;" />
+    <button onclick="document.getElementById('importButton').click();">Import Obstacles</button>
+    <h2 id="scoreBoard" style="display:none;">Best Score: <span id="bestScore">0</span></h2>
+    <h2 id="currentScoreBoard" style="display:none;">Current Score: <span id="currentScore">0</span></h2>
+    <canvas id="gameCanvas" width="800" height="600" tabindex="0"></canvas>
+
+    <div id="controls">
+        <button class="control-button" id="upButton">Up</button>
+        <button class="control-button" id="leftButton">Left</button>
+        <button class="control-button" id="downButton">Down</button>
+        <button class="control-button" id="rightButton">Right</button>
+    </div>
 </body>
 </html>
