@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,8 +13,16 @@
             width: 100%; /* Set canvas width to 100% */
             height: auto; /* Set canvas height to auto */
         }
-        #playButton {
+        #customCanvas {
+            border: 1px solid black;
+            background-color: white;
+            display: none;
+            width: 100%;
+            height: auto;
+        }
+        #playButton, #customizeButton {
             font-size: 20px;
+            margin: 5px;
         }
         #tokenInputContainer {
             margin-bottom: 10px;
@@ -29,12 +38,21 @@
             bottom: 20px;
             left: 20px;
         }
+        #customizeControls {
+            margin-top: 10px;
+            display: none;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.0/js.cookie.min.js"></script>
     <script>
         // Declare canvas and ctx variables at the global scope but initialize them later
         let canvas, ctx;
+        let customCanvas, customCtx;
         
+        // Initialize these variables when needed to prevent DOM element access before they're loaded
+        let playButton, tokenInput, scoreBoard, bestScoreDisplay, currentScoreDisplay, currentScoreBoard, goalInput, setGoalButton;
+        let customizeButton, customizeControls;
+
         function handleTokenResponse(response) {
             if (response.message === 'Token not found') {
                 alert('Token not found. Please create a new token.');
@@ -55,77 +73,203 @@
             handleTokenResponse(data);
         }
 
-        window.onload = () => {
-            // Initialize canvas and context first
-            canvas = document.getElementById('gameCanvas');
-            ctx = canvas.getContext('2d');
-            
-            document.getElementById('submitTokenButton').addEventListener('click', async (event) => {
-                event.preventDefault(); // Prevent page refresh
-                const tokenValue = document.getElementById('tokenInput').value.trim();
-                if (tokenValue) {
-                    await fetchEntryByToken(tokenValue); // Fetch the entry by token
-                    Cookies.set('game_token', tokenValue, { expires: 7 }); // Set the cookie after fetching
-                } else {
-                    alert('Please enter a valid token.');
-                }
-            });
-
-            // Initialize drawing events
-            canvas.addEventListener('click', drawObstacle);
-            document.getElementById('exportButton').addEventListener('click', exportObstacles);
-            document.getElementById('importButton').addEventListener('change', importObstacles);
-            
-            // Initialize UI references
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // First, set up all UI references
             initializeUIReferences();
             
-            // Set up button event listeners
-            playButton.addEventListener('click', () => {
-                canvas.style.display = 'block';
-                playButton.style.display = 'none';
-                scoreBoard.style.display = 'none';
-                startNewGame(); // Start the first game
-            });
+            // Initialize canvas and context
+            canvas = document.getElementById('gameCanvas');
+            if (canvas) {
+                ctx = canvas.getContext('2d');
+            }
             
-            setGoalButton.addEventListener('click', () => {
-                const goalValue = parseInt(goalInput.value);
-                if (!isNaN(goalValue) && goalValue > 0) {
-                    userGoal = goalValue; // Set the user's goal
-                    goalReached = false; // Reset goal reached flag
-                    alert(`Goal set to: ${userGoal}`);
-                } else {
-                    alert('Please enter a valid positive number for the goal.');
-                }
-            });
+            customCanvas = document.getElementById('customCanvas');
+            if (customCanvas) {
+                customCtx = customCanvas.getContext('2d');
+            }
             
-            document.getElementById('upButton').addEventListener('click', () => moveUser({key: 'ArrowUp'}));
-            document.getElementById('downButton').addEventListener('click', () => moveUser({key: 'ArrowDown'}));
-            document.getElementById('leftButton').addEventListener('click', () => moveUser({key: 'ArrowLeft'}));
-            document.getElementById('rightButton').addEventListener('click', () => moveUser({key: 'ArrowRight'}));
-            
-            resizeCanvas(); // Resize the canvas on load
-            initializeGame(); // Initialize game on page load
-        };
+            // Set up event listeners
+            if (document.getElementById('submitTokenButton')) {
+                document.getElementById('submitTokenButton').addEventListener('click', async (event) => {
+                    event.preventDefault(); // Prevent page refresh
+                    const tokenValue = document.getElementById('tokenInput').value.trim();
+                    if (tokenValue) {
+                        await fetchEntryByToken(tokenValue); // Fetch the entry by token
+                        Cookies.set('game_token', tokenValue, { expires: 7 }); // Set the cookie after fetching
+                    } else {
+                        alert('Please enter a valid token.');
+                    }
+                });
+            }
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth * 0.9; // Set canvas width to 90% of window width
-            canvas.height = window.innerHeight * 0.6; // Set canvas height to 60% of window height
-            clearCanvas();
-            drawObstacles();
-            drawUser();
+            // Initialize game controls
+            setUpGameControls();
+            
+            // Initialize customization controls
+            setUpCustomizationControls();
+            
+            // Resize canvas on load
+            resizeCanvas();
+            resizeCustomCanvas();
+            
+            // Initialize game
+            initializeGame();
+            
+            // Add window resize handlers
+            window.addEventListener('resize', resizeCanvas);
+            window.addEventListener('resize', resizeCustomCanvas);
+        });
+
+        function setUpGameControls() {
+            if (playButton) {
+                playButton.addEventListener('click', () => {
+                    canvas.style.display = 'block';
+                    customCanvas.style.display = 'none';
+                    customizeControls.style.display = 'none';
+                    playButton.style.display = 'none';
+                    scoreBoard.style.display = 'none';
+                    startNewGame();
+                });
+            }
+            
+            if (setGoalButton) {
+                setGoalButton.addEventListener('click', () => {
+                    const goalValue = parseInt(goalInput.value);
+                    if (!isNaN(goalValue) && goalValue > 0) {
+                        userGoal = goalValue;
+                        goalReached = false;
+                        alert(`Goal set to: ${userGoal}`);
+                    } else {
+                        alert('Please enter a valid positive number for the goal.');
+                    }
+                });
+            }
+            
+            if (document.getElementById('upButton')) {
+                document.getElementById('upButton').addEventListener('click', () => moveUser({key: 'ArrowUp'}));
+            }
+            
+            if (document.getElementById('downButton')) {
+                document.getElementById('downButton').addEventListener('click', () => moveUser({key: 'ArrowDown'}));
+            }
+            
+            if (document.getElementById('leftButton')) {
+                document.getElementById('leftButton').addEventListener('click', () => moveUser({key: 'ArrowLeft'}));
+            }
+            
+            if (document.getElementById('rightButton')) {
+                document.getElementById('rightButton').addEventListener('click', () => moveUser({key: 'ArrowRight'}));
+            }
+            
+            if (document.getElementById('exportButton')) {
+                document.getElementById('exportButton').addEventListener('click', exportObstacles);
+            }
+            
+            if (document.getElementById('importButton')) {
+                document.getElementById('importButton').addEventListener('change', importObstacles);
+            }
+            
+            if (document.getElementById('createTokenButton')) {
+                document.getElementById('createTokenButton').addEventListener('click', createNewToken);
+            }
+            
+            if (document.getElementById('clearTokenButton')) {
+                document.getElementById('clearTokenButton').addEventListener('click', clearToken);
+            }
         }
-        // Initialize these variables when needed to prevent DOM element access before they're loaded
-        let playButton, tokenInput, scoreBoard, bestScoreDisplay, currentScoreDisplay, currentScoreBoard, goalInput, setGoalButton;
-        
+
+        function setUpCustomizationControls() {
+            if (customizeButton) {
+                customizeButton.addEventListener('click', () => {
+                    canvas.style.display = 'none';
+                    customCanvas.style.display = 'block';
+                    customizeControls.style.display = 'block';
+                    playButton.style.display = 'inline-block';
+                    obstacles.length = 0; // Clear existing obstacles
+                    drawCustomCanvas();
+                });
+            }
+            
+            if (customCanvas) {
+                customCanvas.addEventListener('click', (event) => {
+                    const rect = customCanvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    obstacles.push({
+                        x: x - 25, // Center the obstacle
+                        y: y - 25,
+                        width: 50,
+                        height: 50,
+                    });
+                    drawCustomCanvas();
+                });
+            }
+            
+            if (document.getElementById('clearCustomCanvas')) {
+                document.getElementById('clearCustomCanvas').addEventListener('click', () => {
+                    obstacles.length = 0;
+                    drawCustomCanvas();
+                });
+            }
+            
+            if (document.getElementById('saveCustomCanvas')) {
+                document.getElementById('saveCustomCanvas').addEventListener('click', exportObstacles);
+            }
+        }
+
         function initializeUIReferences() {
             playButton = document.getElementById('playButton');
             tokenInput = document.getElementById('tokenInput');
             scoreBoard = document.getElementById('scoreBoard');
             bestScoreDisplay = document.getElementById('bestScore');
-            currentScoreDisplay = document.getElementById('currentScore'); // Current score display
-            currentScoreBoard = document.getElementById('currentScoreBoard'); // Current score element
-            goalInput = document.getElementById('goalInput'); // Input for user goal
-            setGoalButton = document.getElementById('setGoalButton'); // Set goal button
+            currentScoreDisplay = document.getElementById('currentScore');
+            currentScoreBoard = document.getElementById('currentScoreBoard');
+            goalInput = document.getElementById('goalInput');
+            setGoalButton = document.getElementById('setGoalButton');
+            customizeButton = document.getElementById('customizeButton');
+            customizeControls = document.getElementById('customizeControls');
+        }
+
+        function resizeCanvas() {
+            if (canvas && ctx) {
+                canvas.width = window.innerWidth * 0.9;
+                canvas.height = window.innerHeight * 0.6;
+                clearCanvas();
+                drawObstacles();
+                drawUser();
+            }
+        }
+
+        function resizeCustomCanvas() {
+            if (customCanvas && customCtx) {
+                customCanvas.width = window.innerWidth * 0.9;
+                customCanvas.height = window.innerHeight * 0.6;
+                clearCustomCanvas();
+                drawCustomObstacles();
+            }
+        }
+
+        function clearCustomCanvas() {
+            if (customCtx) {
+                customCtx.clearRect(0, 0, customCanvas.width, customCanvas.height);
+            }
+        }
+
+        function drawCustomCanvas() {
+            if (customCtx) {
+                clearCustomCanvas();
+                drawCustomObstacles();
+            }
+        }
+
+        function drawCustomObstacles() {
+            if (customCtx) {
+                customCtx.fillStyle = 'red';
+                obstacles.forEach(obstacle => { 
+                    customCtx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                });
+            }
         }
 
         let bestScore = 0;
@@ -161,19 +305,19 @@
         }
 
         function drawObstacle(event) {
-            const rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            obstacles.push({
-                x: x - 25, // Center the obstacle
-                y: y - 25,
-                width: 50,
-                height: 50,
-            });
-            draw(); // Redraw including new obstacles
+            if (canvas && ctx) {
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                obstacles.push({
+                    x: x - 25, // Center the obstacle
+                    y: y - 25,
+                    width: 50,
+                    height: 50,
+                });
+                draw(); // Redraw including new obstacles
+            }
         }
-
-        // Mouse events on canvas are initialized in window.onload 
 
         // Function to export obstacles
         function exportObstacles() {
@@ -197,12 +341,14 @@
                 obstacles.length = 0; // Clear existing obstacles
                 obstacles.push(...JSON.parse(data)); // Load imported obstacles
                 draw(); // Redraw with imported obstacles
+                
+                // Also update custom canvas if it's visible
+                if (customCanvas.style.display === 'block') {
+                    drawCustomCanvas();
+                }
             };
             reader.readAsText(file); // Read the file as text
         }
-
-        document.getElementById('exportButton').addEventListener('click', exportObstacles);
-        document.getElementById('importButton').addEventListener('change', importObstacles);
 
         function isOnObstacle(x, y) {
             return obstacles.some(obstacle => 
@@ -214,15 +360,17 @@
         }
 
         function drawObstacles() {
-            ctx.fillStyle = 'red';
-            obstacles.forEach(obstacle => { 
-                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-            });
+            if (ctx) {
+                ctx.fillStyle = 'red';
+                obstacles.forEach(obstacle => { 
+                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                });
+            }
         }
 
         function endGame() {
             alert('Game Over!');
-            if (tokenInput.value) {
+            if (tokenInput && tokenInput.value) {
                 if (currentScore > bestScore) {
                     bestScore = currentScore;
                     bestScoreDisplay.textContent = bestScore;
@@ -255,7 +403,9 @@
         }
 
         function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
         }
 
         function startNewGame() {
@@ -294,64 +444,58 @@
 
         function initializeGame() {
             const token = Cookies.get('game_token');
-            if (token) {
+            if (token && tokenInput) {
                 tokenInput.value = token;
                 fetchBestScore(token).then(score => {
                     bestScore = score;
-                    bestScoreDisplay.textContent = bestScore;
-                    scoreBoard.style.display = 'block'; // Show score once fetched
+                    if (bestScoreDisplay) {
+                        bestScoreDisplay.textContent = bestScore;
+                    }
+                    if (scoreBoard) {
+                        scoreBoard.style.display = 'block'; // Show score once fetched
+                    }
                 }).catch(err => console.error('Error initializing game:', err));
                 alert(`Welcome back! Your token is: ${token}`);
             }
         }
 
-        submitTokenButton.addEventListener('click', async () => {
-            const tokenValue = tokenInput.value.trim();
-            if (tokenValue) {
-                try {
-                    bestScore = await fetchBestScore(tokenValue);
-                    Cookies.set('game_token', tokenValue, { expires: 7 });
-                } catch (error) {
-                    console.error('Error setting token:', error);
-                    alert('Error setting token. Please try again.');
-                }
-            } else {
-                alert('Please enter a valid token.');
-            }
-            return false; // Prevent default behavior
-        });
-
-        createTokenButton.addEventListener('click', async () => {
+        function createNewToken() {
             const newToken = generateToken();
-            tokenInput.value = newToken;
+            if (tokenInput) {
+                tokenInput.value = newToken;
+            }
 
-            try {
-                const response = await fetch('/entries', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: newToken, content: 0 })
-                });
-
+            fetch('/entries', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: newToken, content: 0 })
+            }).then(response => {
                 if (response.ok) {
                     Cookies.set('game_token', newToken, { expires: 7 });
                     bestScore = 0;
-                    bestScoreDisplay.textContent = bestScore;
-                    scoreBoard.style.display = 'block';
+                    if (bestScoreDisplay) {
+                        bestScoreDisplay.textContent = bestScore;
+                    }
+                    if (scoreBoard) {
+                        scoreBoard.style.display = 'block';
+                    }
                     alert(`New token created: ${newToken}`);
                 } else {
                     alert('Error creating token. Please try again.');
                 }
-            } catch (error) {
+            }).catch(error => {
                 console.error('Error:', error);
                 alert('Error creating token. Please try again.');
-            }
-        });
+            });
+        }
 
-        clearTokenButton.addEventListener('click', () => {
+        function clearToken() {
             Cookies.remove('game_token'); // Only remove the cookie
-            tokenInput.value = ''; // Clear the input field
+            if (tokenInput) {
+                tokenInput.value = ''; // Clear the input field
+            }
             alert('Token cleared! Only cookie deleted, database entry will be deleted after 30 days of inactivity.');
-        });
+        }
 
         function moveUser(event) {
             const step = 5;
@@ -378,7 +522,9 @@
                 endGame();
             } else {
                 currentScore++; // Increment score when the user moves to a new area
-                currentScoreDisplay.textContent = currentScore; // Update current score display
+                if (currentScoreDisplay) {
+                    currentScoreDisplay.textContent = currentScore; // Update current score display
+                }
 
                 // Check if the user's goal has been reached
                 if (userGoal !== null && currentScore >= userGoal && !goalReached) {
@@ -404,25 +550,31 @@
         }
 
         function draw() {
-            clearCanvas(); // Clear the canvas
-            drawObstacles(); 
-            drawVisitedAreas();
-            drawUser();
+            if (ctx) {
+                clearCanvas(); // Clear the canvas
+                drawObstacles(); 
+                drawVisitedAreas();
+                drawUser();
+            }
         }
 
         function drawVisitedAreas() {
-            ctx.fillStyle = 'blue';
-            visitedAreas.forEach(area => {
-                const [x, y] = area.split(':').map(Number);
-                ctx.fillRect(x, y, user.size, user.size); 
-            });
+            if (ctx) {
+                ctx.fillStyle = 'blue';
+                visitedAreas.forEach(area => {
+                    const [x, y] = area.split(':').map(Number);
+                    ctx.fillRect(x, y, user.size, user.size); 
+                });
+            }
         }
 
         function drawUser() {
-            ctx.fillStyle = 'blue'; 
-            ctx.beginPath();
-            ctx.arc(user.x, user.y, user.size, 0, Math.PI * 2);
-            ctx.fill();
+            if (ctx) {
+                ctx.fillStyle = 'blue'; 
+                ctx.beginPath();
+                ctx.arc(user.x, user.y, user.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
     </script>
 </head>
@@ -437,12 +589,21 @@
     <button id="setGoalButton">Set Goal</button>
     <input type="number" id="obstacleInput" placeholder="Number of red blocks" value="5" min="1" max="20" />
     <button id="playButton">Play</button>
+    <button id="customizeButton">Customize Obstacles</button>
     <button id="exportButton">Export Obstacles</button>
     <input type="file" id="importButton" style="display: none;" />
     <button onclick="document.getElementById('importButton').click();">Import Obstacles</button>
     <h2 id="scoreBoard" style="display:none;">Best Score: <span id="bestScore">0</span></h2>
     <h2 id="currentScoreBoard" style="display:none;">Current Score: <span id="currentScore">0</span></h2>
+    
+    <div id="customizeControls">
+        <p>Click on the canvas to add obstacles. When finished, click "Save" to export or "Play" to start the game.</p>
+        <button id="clearCustomCanvas">Clear All</button>
+        <button id="saveCustomCanvas">Save Obstacles</button>
+    </div>
+    
     <canvas id="gameCanvas" width="800" height="600" tabindex="0"></canvas>
+    <canvas id="customCanvas" width="800" height="600" tabindex="0"></canvas>
 
     <div id="controls">
         <button class="control-button" id="upButton">Up</button>
