@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start" : "node index.js"
   },
   "keywords": [],
   "author": "",
@@ -13,5 +14,6 @@
     "@types/node": "^18.0.6",
     "express": "^4.21.2",
     "sqlite3": "^5.1.7"
-  }
+  },
+  "engines": { "node": "16.x" }
 }
