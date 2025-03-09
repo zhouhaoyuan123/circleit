@@ -32,6 +32,9 @@
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.0/js.cookie.min.js"></script>
     <script>
+        // Declare canvas and ctx variables at the global scope but initialize them later
+        let canvas, ctx;
+        
         function handleTokenResponse(response) {
             if (response.message === 'Token not found') {
                 alert('Token not found. Please create a new token.');
@@ -53,6 +56,10 @@
         }
 
         window.onload = () => {
+            // Initialize canvas and context first
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            
             document.getElementById('submitTokenButton').addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent page refresh
                 const tokenValue = document.getElementById('tokenInput').value.trim();
@@ -64,29 +71,62 @@
                 }
             });
 
+            // Initialize drawing events
+            canvas.addEventListener('click', drawObstacle);
+            document.getElementById('exportButton').addEventListener('click', exportObstacles);
+            document.getElementById('importButton').addEventListener('change', importObstacles);
+            
+            // Initialize UI references
+            initializeUIReferences();
+            
+            // Set up button event listeners
+            playButton.addEventListener('click', () => {
+                canvas.style.display = 'block';
+                playButton.style.display = 'none';
+                scoreBoard.style.display = 'none';
+                startNewGame(); // Start the first game
+            });
+            
+            setGoalButton.addEventListener('click', () => {
+                const goalValue = parseInt(goalInput.value);
+                if (!isNaN(goalValue) && goalValue > 0) {
+                    userGoal = goalValue; // Set the user's goal
+                    goalReached = false; // Reset goal reached flag
+                    alert(`Goal set to: ${userGoal}`);
+                } else {
+                    alert('Please enter a valid positive number for the goal.');
+                }
+            });
+            
+            document.getElementById('upButton').addEventListener('click', () => moveUser({key: 'ArrowUp'}));
+            document.getElementById('downButton').addEventListener('click', () => moveUser({key: 'ArrowDown'}));
+            document.getElementById('leftButton').addEventListener('click', () => moveUser({key: 'ArrowLeft'}));
+            document.getElementById('rightButton').addEventListener('click', () => moveUser({key: 'ArrowRight'}));
+            
             resizeCanvas(); // Resize the canvas on load
             initializeGame(); // Initialize game on page load
         };
 
         function resizeCanvas() {
-            const canvas = document.getElementById('gameCanvas');
             canvas.width = window.innerWidth * 0.9; // Set canvas width to 90% of window width
             canvas.height = window.innerHeight * 0.6; // Set canvas height to 60% of window height
             clearCanvas();
             drawObstacles();
             drawUser();
         }
-
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const playButton = document.getElementById('playButton');
-        const tokenInput = document.getElementById('tokenInput');
-        const scoreBoard = document.getElementById('scoreBoard');
-        const bestScoreDisplay = document.getElementById('bestScore');
-        const currentScoreDisplay = document.getElementById('currentScore'); // Current score display
-        const currentScoreBoard = document.getElementById('currentScoreBoard'); // Current score element
-        const goalInput = document.getElementById('goalInput'); // Input for user goal
-        const setGoalButton = document.getElementById('setGoalButton'); // Set goal button
+        // Initialize these variables when needed to prevent DOM element access before they're loaded
+        let playButton, tokenInput, scoreBoard, bestScoreDisplay, currentScoreDisplay, currentScoreBoard, goalInput, setGoalButton;
+        
+        function initializeUIReferences() {
+            playButton = document.getElementById('playButton');
+            tokenInput = document.getElementById('tokenInput');
+            scoreBoard = document.getElementById('scoreBoard');
+            bestScoreDisplay = document.getElementById('bestScore');
+            currentScoreDisplay = document.getElementById('currentScore'); // Current score display
+            currentScoreBoard = document.getElementById('currentScoreBoard'); // Current score element
+            goalInput = document.getElementById('goalInput'); // Input for user goal
+            setGoalButton = document.getElementById('setGoalButton'); // Set goal button
+        }
 
         let bestScore = 0;
         let currentScore = 0;
@@ -133,8 +173,7 @@
             draw(); // Redraw including new obstacles
         }
 
-        // Enable mouse events on canvas
-        canvas.addEventListener('click', drawObstacle); 
+        // Mouse events on canvas are initialized in window.onload 
 
         // Function to export obstacles
         function exportObstacles() {
@@ -314,24 +353,6 @@
             alert('Token cleared! Only cookie deleted, database entry will be deleted after 30 days of inactivity.');
         });
 
-        setGoalButton.addEventListener('click', () => {
-            const goalValue = parseInt(goalInput.value);
-            if (!isNaN(goalValue) && goalValue > 0) {
-                userGoal = goalValue; // Set the user's goal
-                goalReached = false; // Reset goal reached flag
-                alert(`Goal set to: ${userGoal}`);
-            } else {
-                alert('Please enter a valid positive number for the goal.');
-            }
-        });
-
-        playButton.addEventListener('click', () => {
-            canvas.style.display = 'block';
-            playButton.style.display = 'none';
-            scoreBoard.style.display = 'none';
-            startNewGame(); // Start the first game
-        });
-
         function moveUser(event) {
             const step = 5;
             switch (event.key) {
@@ -369,11 +390,6 @@
             }
             draw(); // Continuously redraw the canvas
         }
-
-        document.getElementById('upButton').addEventListener('click', () => moveUser({key: 'ArrowUp'}));
-        document.getElementById('downButton').addEventListener('click', () => moveUser({key: 'ArrowDown'}));
-        document.getElementById('leftButton').addEventListener('click', () => moveUser({key: 'ArrowLeft'}));
-        document.getElementById('rightButton').addEventListener('click', () => moveUser({key: 'ArrowRight'}));
 
         function checkCollision(user) {
             for (const obstacle of obstacles) {
