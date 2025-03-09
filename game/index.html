@@ -410,7 +410,12 @@
 
         function startNewGame() {
             visitedAreas.clear(); // Clear visited areas for the new game
-            initializeObstacles(); // Initialize new obstacles for the game
+            
+            // Only initialize random obstacles if there are no custom obstacles
+            if (obstacles.length === 0) {
+                initializeObstacles(); // Initialize new obstacles for the game
+            }
+            
             currentScore = 0; // Reset current score
             currentScoreDisplay.textContent = currentScore; // Update current score display
             currentScoreBoard.style.display = 'block'; // Show current score display
